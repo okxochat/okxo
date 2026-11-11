@@ -1,0 +1,13 @@
+[package]
+name = "okxo-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+uuid = { version = "1.29.2", features = ["v7", "serde"] }
+
+[lints]
+workspace = true
