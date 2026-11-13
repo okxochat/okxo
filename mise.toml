@@ -1,0 +1,29 @@
+[tools]
+rust = { version = "1.99.1", components = "rustfmt,clippy" }
+
+[env]
+RUST_BACKTRACE = "1"
+
+[tasks.build]
+description = "Build the workspace"
+run = "cargo build --workspace"
+
+[tasks.run]
+description = "Run the okxo binary"
+run = "cargo run -p okxo"
+
+[tasks.test]
+description = "Run all tests"
+run = "cargo test --workspace"
+
+[tasks.fmt]
+description = "Format all code"
+run = "cargo fmt --all"
+
+[tasks.lint]
+description = "Check formatting and run clippy (warnings are errors)"
+run = ["cargo fmt --all -- --check", "cargo clippy --workspace --all-targets -- -D warnings"]
+
+[tasks.ci]
+description = "Everything CI runs"
+depends = ["lint", "test"]

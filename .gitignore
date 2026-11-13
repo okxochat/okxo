@@ -1,0 +1,19 @@
+/target
+**/*.rs.bk
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+mise.local.toml
+
+# Local data
+/data
+*.db
+*.db-shm
+*.db-wal
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
