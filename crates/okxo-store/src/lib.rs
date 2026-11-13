@@ -1,23 +1,24 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use uuid::Uuid;
+pub mod keys;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ChannelID(pub Uuid);
+pub struct ChannelId(pub Uuid);
 
-impl ChannelID {
+impl ChannelId {
     pub fn new() -> Self {
         Self(Uuid::now_v7())
     }
 }
 
-impl Default for ChannelID {
+impl Default for ChannelId {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl fmt::Display for ChannelID {
+impl fmt::Display for ChannelId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0.hyphenated())
     }
@@ -25,7 +26,7 @@ impl fmt::Display for ChannelID {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Message {
-    pub channel_id: ChannelID,
+    pub channel_id: ChannelId,
     pub seq: u64,
     pub author_id: Uuid,
     pub body: String,
@@ -35,7 +36,7 @@ pub struct Message {
 
 #[derive(Debug, Clone)]
 pub struct NewMessage {
-    pub channel_id: ChannelID,
+    pub channel_id: ChannelId,
     pub author_id: Uuid,
     pub body: String,
     pub client_msg_id: String,
@@ -47,7 +48,7 @@ mod tests {
     #[test]
     fn channel_id_display_is_fixed_width() {
         for _ in 0..100 {
-            assert_eq!(ChannelID::new().to_string().len(), 36);
+            assert_eq!(ChannelId::new().to_string().len(), 36);
         }
     }
 }
