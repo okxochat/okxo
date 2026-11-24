@@ -1,68 +1,89 @@
-// HINT: add a `//!` doc comment at the very top describing this file.
-//   SlateDB keys are bytes, sorted by comparing bytes left to right.
-//   Layout (docs/architecture.md#keys):
-//     ch/{cid}/m/{seq:020}            one message
-//     ch/{cid}/head                   the channel's latest seq
-//     ch/{cid}/idem/{client_msg_id}   duplicate-send detection
+//! Builds the SlateDB keys for a channel.
+//!
+//! Layout (docs/architecture.md#keys):
+//!   ch/{cid}/m/{seq:020}            one message
+//!   ch/{cid}/head                   the channel's latest seq
+//!   ch/{cid}/idem/{client_msg_id}   duplicate-send detection
+
 use crate::ChannelId;
+use std::fmt;
 
-/// key for one message:
-pub fn msg(ch: ChannelId, seq: u64) -> Vec<u8> {
-    format!("ch/{ch}/m/{seq:020}").into_bytes()
+/// A SlateDB key. The field is private, so only this module can create one.
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Key {
+    bytes: Vec<u8>,
 }
 
-/// Key holding the channel's latest seq
-pub fn head(ch: ChannelId) -> Vec<u8> {
-    format!("ch/{ch}/head").into_bytes()
+/// Key for one message: `ch/{cid}/m/{seq:020}`.
+pub fn msg(ch: ChannelId, seq: u64) -> Key {
+    Key {
+        bytes: format!("ch/{ch}/m/{seq:020}").into_bytes(),
+    }
 }
 
-// TODO: write a `///` doc comment, like the two above.
-//
-// HINT (signature): public, named `idem`, takes the channel id AND the
-//   client's message id (text), and returns bytes like the others.
-//   - You only *read* the text, so don't take ownership of it.
-//   - The usual type for "borrowed, read-only text" is `&` followed by
-//     the basic text type. It is NOT `String`.
-//
-// HINT (body): the key is "ch/{cid}/idem/{client_msg_id}". Otherwise
-//   it's the same as `msg` and `head`.
-pub fn idem(ch: ChannelId, client_msg_id: String) -> Vec<u8> {
-    format!("ch/{ch}/idem/{client_msg_id}").into_bytes()
+/// Key holding the channel's latest seq.
+pub fn head(ch: ChannelId) -> Key {
+    Key {
+        bytes: format!("ch/{ch}/head").into_bytes(),
+    }
+}
+
+/// Key mapping a client's message id to the seq it was stored under.
+pub fn idem(ch: ChannelId, client_msg_id: &str) -> Key {
+    Key {
+        bytes: format!("ch/{ch}/idem/{client_msg_id}").into_bytes(),
+    }
+}
+
+// Lets SlateDB read a key's bytes without being able to change them.
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+// Prints keys as text, so failing tests show `Key(ch/.../head)` instead of raw bytes.
+impl fmt::Debug for Key {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Key({})", String::from_utf8_lossy(&self.bytes))
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    // HINT: import everything from the parent module (the rest of this file).
-    //   The parent module is `super`, and "everything" is `*`.
-
-    // Written for you: the checkpoint for `msg`.
     use super::*;
+
+    // Zero-padding keeps message keys in seq order (9 before 10).
     #[test]
     fn message_keys_sort_by_seq() {
         let ch = ChannelId::new();
         assert!(msg(ch, 9) < msg(ch, 10));
         assert!(msg(ch, 99) < msg(ch, 100));
-        // QUESTION: why can we pass `ch` four times? (Look at its derives in lib.rs.)
     }
 
-    // YOUR TURN: write a test called `message_key_format` that proves
-    // msg(ch, 7) is exactly "ch/<the channel id>/m/00000000000000000007".
-    //
-    // HINTS:
-    //   - Start with `#[test]` and `fn message_key_format() { ... }`.
-    //   - Turn the bytes back into text: `String::from_utf8(bytes)`.
-    //     It returns a `Result` (it can fail on invalid text). In tests
-    //     it's fine to take the value out with `.unwrap()`.
-    //   - Build the expected string with `format!` and the same `ch`.
-    //   - Compare them with `assert_eq!(left, right)`.
+    // The message key has exactly the documented layout.
     #[test]
     fn message_key_format() {
         let ch = ChannelId::new();
-        let bytes = msg(ch, 7);
-        let string = String::from_utf8(bytes).unwrap();
+        let key = msg(ch, 7);
+        let string = String::from_utf8(key.bytes).unwrap();
         let expected = format!("ch/{ch}/m/00000000000000000007");
         assert_eq!(expected, string);
     }
 
-    // STRETCH: write tests for `head` and `idem` the same way.
+    // as_ref exposes the raw key bytes.
+    #[test]
+    fn key_as_bytes() {
+        let ch = ChannelId::new();
+        let key = head(ch);
+        let bytes: &[u8] = key.as_ref();
+        assert!(bytes.starts_with(b"ch/"));
+    }
+
+    // The same channel always gets the same head key.
+    #[test]
+    fn head_key_is_stable() {
+        let ch = ChannelId::new();
+        assert_eq!(head(ch), head(ch));
+    }
 }
